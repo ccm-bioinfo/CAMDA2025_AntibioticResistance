@@ -5,14 +5,16 @@ This repository contains the organized and structured information for the **CAMD
 ## General information
 
 The dataset contains 9 bacterial species encompassing 4 antibiotics:
-    _ GEN: Gentamicin
-    _ ERY: Erythromycin
-    _ TET: Tetracycline
-    _ CAZ: Ceftazidime
+
+    - GEN: Gentamicin
+    - ERY: Erythromycin
+    - TET: Tetracycline
+    - CAZ: Ceftazidime
 
 For each bacterial isolate, the SRA ID corresponding to the sequencing reads is available, and inferences can be performed based on:
-    _ measurement values with typing method and measurement signs ('=', '>', '<' or '<='). Please note that these inferences are not possible for S. aureus and A. baumannii.
-    _ phenotypic status ('Susceptible', 'Intermediate' and 'Resistant'), all obtained using the latest CLSI versions (R package 'AMR' v2.1.1).
+
+    - measurement values with typing method and measurement signs ('=', '>', '<' or '<='). Please note that these inferences are not possible for S. aureus and A. baumannii.
+    - phenotypic status ('Susceptible', 'Intermediate' and 'Resistant'), all obtained using the latest CLSI versions (R package 'AMR' v2.1.1).
 
 Some additional metadata are provided when available (publication ID, isolation_source, isolation_country, collection_date).
 
