@@ -1,0 +1,254 @@
+# Comparing CAMDA metadata related with NCBI
+
+Aim: Find how many species are correctly annotated in both databases CAMDA and NCBI related with CAMDA information (training and test datasets).
+
+-   **Author**: Evelia Coss
+-   **Date**: 12/June/2025
+
+## Load packages
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(DT)        # Tablas bonitas
+```
+
+## STEP 1. Import Metadata and change format
+
+```{r importData}
+# getwd() # [1] "C:/Users/ecoss/Documents/Respaldos/Github_notes/CAMDA2025_AntibioticResistance/scripts"
+getwd()
+
+# > training dataset
+training_metadata <- read_csv("../rawdata/TrainAndTest_dataset/training_dataset.csv")
+# rename species
+training_metadata_db <- training_metadata %>%
+  mutate(scientific_name_CAMDA = paste(genus, species, sep = " ")) 
+# Rows: 6144 Columns: 16── Column
+
+# > test dataset
+test_metadata <- read_csv("../rawdata/TrainAndTest_dataset/testing_template.csv")
+# rename species
+test_metadata_db <- test_metadata %>%
+  mutate(scientific_name_CAMDA = paste(genus, species, sep = " ")) 
+# Rows: 5345 Columns: 6── Column
+
+# > Load public metadata from NCBI
+sra_metadata <- read_csv("../metadata/sra-metadata.csv") 
+sra_metadata_db <- sra_metadata %>% janitor::clean_names() %>%  # para limpiar y estandarizar los nombres de columnas de un data frame
+  select(run, library_strategy, library_selection, library_source, platform, model, 
+                        bio_project, bio_sample, scientific_name) %>%
+  rename(accession = run, scientific_name_complete = scientific_name)
+# Rows: 11510 Columns: 47── Column specification
+
+# Reduce name
+# Quedarme con las primeras dos palabras
+sra_metadata_db$scientific_name_NCBI <- word(sra_metadata_db$scientific_name_complete, 1, 2)
+```
+
+## STEP 2. Cleaning metadata information
+
+The information for the SRA IDs in the test and training datasets was verified:
+
+1.  SRA IDs found in both test and training sets were removed from the test set, keeping them only in the training set.
+2.  Duplicate SRA IDs in the rows of the training dataset were removed.
+3.  SRA IDs with all three phenotypes (S/I/R) were removed from the training dataset.
+4.  Re-assignment of SRA IDs with duplicated annotations or conflicting annotations.
+
+### 2.1 Exclude overlapping SRA IDs from the test set, retaining them only in the training set
+
+```{r}
+# Obtener los IDs que están en ambos dataframes
+sraids_overlapping <- intersect(test_metadata$accession, training_metadata$accession)
+
+# Mostrar los IDs comunes
+length(sraids_overlapping)
+```
+
+We detected `length(sraids_overlapping)` SRA IDs se encuentran compartidos entre ambos archivos.
+
+### Eliminar los IDs que se comparten con training
+
+```{r}
+testing_metadata_cleaned <- test_metadata %>% filter(!(accession %in% training_metadata$accession))
+
+# 4055 SRA IDs accessions by row
+nrow(testing_metadata_cleaned) 
+# check: length(unique(testing_metadata_cleaned$accession))
+
+# Save file
+# Create new folder
+#dir.create("../rawdata/TrainAndTest_cleaned")
+write_tsv(testing_metadata_cleaned, file = "../rawdata/TrainAndTest_cleaned/testing_metadata_cleaned.tsv", quote = "none")
+```
+
+## STEP 3. Remove duplicated SRA IDs from the training set
+
+### Cuantos SRA IDs se encuentran repetidos en training
+
+```{r}
+# How many unique that we have?
+cat("Number of SRA ID unique (accessions)", length(unique(training_metadata$accession)), sep = " ") # 5458 SRA ID uniqued
+
+# Numero de SRA IDs que se repiten varias veces?
+training_metadata_duplicated  <- table(training_metadata$accession)
+sum(training_metadata_duplicated > 1) # 502 SRA IDs
+
+# How many duplicated that we have?
+training_duplicated_table <- training_metadata %>%
+  group_by(accession) %>%
+  filter(n() > 1) %>%   # filtra accession con más de una ocurrencia
+  summarise(duplicados = n()) %>%
+  arrange(desc(duplicados))
+
+# Only IDs (502 SRA IDs)
+training_SRAIDs_duplicated <- training_duplicated_table$accession
+```
+
+```{r}
+training_duplicated_db <- training_metadata %>% 
+  filter(accession %in% training_SRAIDs_duplicated)
+```
+
+## Check: Do we have the same species?
+
+### Training vs NCBI data
+
+```{r}
+intersect(training_metadata_db$scientific_name_CAMDA, sra_metadata_db$scientific_name_NCBI)
+```
+
+### Test vs NCBI data
+
+```{r}
+intersect(test_metadata_db$scientific_name_CAMDA, sra_metadata_db$scientific_name_NCBI)
+```
+
+## STEP 4. Comparing the information of Specie and accession (SRA ID)
+
+### Training vs NCBI data
+
+#### 2.1 Check species name matches between CAMDA and NCBI
+
+Find how many species have matching names between CAMDA and NCBI to identify correctly annotated entries.
+
+```{r}
+training_completeInfo_db <- left_join(training_metadata_db, sra_metadata_db, by ="accession") %>%
+  select(accession, scientific_name_CAMDA, scientific_name_NCBI) %>%
+  distinct() %>% #eliminas filas
+  # Agregar informacion si coinden o no las especies
+  mutate( status = case_when(
+      scientific_name_CAMDA == scientific_name_NCBI ~ "coincide",
+      TRUE ~ "no coincide"
+    )) 
+
+# Global information
+training_completeInfo_db %>%  
+  # Visualizar informacion en una tabla bonita
+  DT::datatable()
+```
+
+Save data
+
+```{r save training_completeInfo_db}
+write_tsv(training_completeInfo_db, file = "../rawdata/Training_status_sp_CAMDAvsNCBI.tsv.gz")
+```
+
+#### 2.2 How many SRA entries are correctly annotated and how many are not?
+
+```{r}
+# Global 
+table(training_completeInfo_db$status)
+```
+
+How many species have at least one misannotated entry?
+
+```{r}
+training_completeInfo_db %>% filter(status == "no coincide") %>%
+  distinct(scientific_name_CAMDA)
+```
+
+#### 2.3 What information recorded in CAMDA does not match the NCBI data?
+
+```{r}
+training_completeInfo_db %>% filter(status == "no coincide") %>%
+  group_by(scientific_name_CAMDA) %>%
+  distinct(scientific_name_NCBI) %>%
+  # Visualizar informacion en una tabla bonita
+  DT::datatable()
+```
+
+#### 2.4 How many samples from each species do not match the NCBI data?
+
+```{r}
+training_completeInfo_db %>%
+  filter(status == "no coincide") %>%
+  group_by(scientific_name_CAMDA) %>%
+  summarise(n_mal_anotadas = n()) %>%
+  arrange(desc(n_mal_anotadas))
+```
+
+## Test vs NCBI data
+
+#### 2.1 Check species name matches between CAMDA and NCBI
+
+```{r}
+test_completeInfo_db <- left_join(test_metadata_db, sra_metadata_db, by ="accession") %>%
+  select(accession, scientific_name_CAMDA, scientific_name_NCBI) %>%
+  distinct() %>% #eliminas filas
+  # Agregar informacion si coinden o no las especies
+  mutate( status = case_when(
+      scientific_name_CAMDA == scientific_name_NCBI ~ "coincide",
+      TRUE ~ "no coincide"
+    )) 
+
+# Global information
+test_completeInfo_db %>%  
+  # Visualizar informacion en una tabla bonita
+  DT::datatable()
+```
+
+Save data
+
+```{r}
+write_tsv(test_completeInfo_db, file = "../rawdata/Test_status_sp_CAMDAvsNCBI.tsv.gz")
+```
+
+#### 2.2 How many SRA entries are correctly annotated and how many are not?
+
+```{r}
+# Global 
+table(test_completeInfo_db$status)
+```
+
+Que especies no coinden
+
+```{r}
+test_completeInfo_db %>% filter(status == "no coincide") %>%
+  distinct(scientific_name_CAMDA)
+```
+
+#### 2.3 What information recorded in CAMDA does not match the NCBI data?
+
+```{r}
+test_completeInfo_db %>% filter(status == "no coincide") %>%
+  group_by(scientific_name_CAMDA) %>%
+  distinct(scientific_name_NCBI) %>%
+  # Visualizar informacion en una tabla bonita
+  DT::datatable()
+```
+
+#### 2.4 How many samples from each species do not match the NCBI data?
+
+```{r}
+test_completeInfo_db %>%
+  filter(status == "no coincide") %>%
+  group_by(scientific_name_CAMDA) %>%
+  summarise(n_mal_anotadas = n()) %>%
+  arrange(desc(n_mal_anotadas))
+```
+
+## To do list
+
+-   Cuantos SRR tenemos en total por especie?
+-   Cuantas 341 se pueden reeetiquetar con la misma especie relacionada con las especies que tenemos?
+-   Porcentajes de datos que debemos eliminar?

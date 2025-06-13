@@ -1,0 +1,108 @@
+---
+title: "Datos para descarga de informacion"
+author: "Evelia Coss"
+date: "2025-06-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Cleaning metadata information
+
+Se verifico la informacion de los SRA IDs de los datos de test y training:
+
+1. Eliminan los SRA IDs que se encontraran en test y training compartidos, dejandolos solo en training.
+2. Se eliminaron los SRA que se encontraran repetidos en filas de los datos de training.
+3. Se eliminaron los SRA IDs que tuvieron los 3 fenotipos (S/I/R) de los datos de training.
+4. Re-asignacion SRA IDs con duplicaciones en las anotaciones o cuentan con distintas anotaciones.
+
+### Import Metadata 
+
+```{r, importData}
+# getwd() # [1] "C:/Users/ecoss/Documents/Respaldos/Github_notes/CAMDA2025_AntibioticResistance/scripts"
+
+# Test datasets
+testing_metadata <- read_csv("../rawdata/TrainAndTest_dataset/testing_template.csv")
+# Rows: 5345 Columns: 6── Column specification
+
+# training dataset
+training_metadata <- read_csv("../rawdata/TrainAndTest_dataset/training_dataset.csv")
+# Rows: 6144 Columns: 16── Column
+```
+
+## STEP 1. Exclude overlapping SRA IDs from the test set, retaining them only in the training set
+
+```{r}
+# Obtener los IDs que están en ambos dataframes
+sraids_overlapping <- intersect(testing_metadata$accession, training_metadata$accession)
+
+# Mostrar los IDs comunes
+length(sraids_overlapping)
+```
+We detected `length(sraids_overlapping)` SRA IDs se encuentran compartidos entre ambos archivos. 
+
+### Eliminar los IDs que se comparten con training
+
+```{r}
+testing_metadata_cleaned <- testing_metadata %>% filter(!(accession %in% training_metadata$accession))
+
+# 4055 SRA IDs accessions by row
+nrow(testing_metadata_cleaned) 
+# check: length(unique(testing_metadata_cleaned$accession))
+
+# Save file
+# Create new folder
+dir.create("../rawdata/TrainAndTest_cleaned")
+write_tsv(testing_metadata_cleaned, file = "../rawdata/TrainAndTest_cleaned/testing_metadata_cleaned.tsv", quote = "none")
+```
+
+## STEP 2. Remove duplicated SRA IDs from the training set
+
+### Cuantos SRA IDs se encuentran repetidos en training 
+
+```{r}
+# How many unique that we have?
+cat("Number of SRA ID unique (accessions)", length(unique(training_metadata$accession)), sep = " ") # 5458 SRA ID uniqued
+
+# Numero de SRA IDs que se repiten varias veces?
+training_metadata_duplicated  <- table(training_metadata$accession)
+sum(training_metadata_duplicated > 1) # 502 SRA IDs
+
+# How many duplicated that we have?
+training_duplicated_table <- training_metadata %>%
+  group_by(accession) %>%
+  filter(n() > 1) %>%   # filtra accession con más de una ocurrencia
+  summarise(duplicados = n()) %>%
+  arrange(desc(duplicados))
+
+# Only IDs (502 SRA IDs)
+training_SRAIDs_duplicated <- training_duplicated_table$accession
+```
+
+
+```{r}
+training_duplicated_db <- training_metadata %>% 
+  filter(accession %in% training_SRAIDs_duplicated)
+
+```
+
+
+
+
+
+## Informacion de los SRA para descargar
+
+Datos de training que se encuentran duplicados o repetidos (1188 filas, que equivalen a 502 SRA IDs unicos).
+
+```{r}
+training_repetidos <- read_csv("../rawdata/filtered_dataset/filtrado_accessions_repetidos.csv")
+```
+
