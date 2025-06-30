@@ -14,9 +14,9 @@ identify genes conferring antibiotic resistance from
 - **AMR Gene Family** - gene family which the gene belongs to. A gene can belong
   to multiple families, and a comma-separated list of families is written in
   such cases.
-- **Drug Class** - type of substance that the gene produces. A gene can produce
-  many types of substances, so a comma-separated list of substances is used in
-  those cases.
+- **Drug Class** - category of antibiotics against which the gene confers
+  resistance. A single gene can can protect the organism from many categories of
+  antibiotics, so a comma-separated list of classes is used in those cases.
 - **Resistance Mechanism** - method which the gene uses to protect the organism
   against the antibiotic. Some genes have multiple resistance mechanisms, and,
   just like with previous columns, a comma-separated list of mechanisms is
