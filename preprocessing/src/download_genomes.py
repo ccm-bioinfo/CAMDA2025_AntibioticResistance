@@ -49,7 +49,7 @@ def parse_args() -> tuple[list[str], str]:
         f"example: {parser.prog} -o genomes <<< ENA_SAMEA800315"
     )
     parser.add_argument(
-        "-o", "--output", help="output directory (default: .)",
+        "-o", "--output", help="output directory (default: .)", metavar="path",
         default="."
     )
     
