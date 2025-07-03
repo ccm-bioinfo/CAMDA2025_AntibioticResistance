@@ -3,8 +3,7 @@
 
 """Read genome IDs from stdin and save them gzipped into a directory. Valid
 identifiers include those that start with 'GCA_', 'ENA_' followed by a BioSample
-accession or 'BVBRC_' followed by a BV-BRC genome accession. Identifiers may be
-separated by any whitespace character."""
+accession or 'BVBRC_' followed by a BV-BRC genome accession."""
 
 import argparse
 import csv
@@ -47,8 +46,7 @@ def parse_args() -> tuple[list[str], str]:
         )
     )
     parser.epilog = (
-        f"example: {parser.prog} -o genomes <<< "
-        "\"ENA_SAMEA800315 BVBRC_485.3331\""
+        f"example: {parser.prog} -o genomes <<< ENA_SAMEA800315"
     )
     parser.add_argument(
         "-o", "--output", help="output directory (default: .)",
@@ -59,7 +57,7 @@ def parse_args() -> tuple[list[str], str]:
     if sys.stdin.isatty():
         parser.print_help()
         sys.exit(1)
-    genomes: list[str] = [genome.strip() for genome in sys.stdin.read().split()]
+    genomes: list[str] = [genome.strip() for genome in sys.stdin]
     output: str = args.output
 
     return genomes, output

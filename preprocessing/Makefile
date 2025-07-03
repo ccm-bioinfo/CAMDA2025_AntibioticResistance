@@ -16,5 +16,5 @@ all: download-genomes
 download-genomes:
 > @mkdir -p data/genomes/camda
 > @(cut -f 18 -d, metadata/train.csv && cut -f 8 -d, metadata/test.csv) | \
-    python3 src/download_genomes.py -o data/genomes/camda
+    sort | uniq | python3 src/download_genomes.py -o data/genomes/camda
 .PHONY: download-genomes
