@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """Read genome IDs from stdin and save them gzipped into a directory. Valid
-identifiers include those that start with 'ENA_' followed by a BioSample
+identifiers include those that start with 'GCA_', 'ENA_' followed by a BioSample
 accession or 'BVBRC_' followed by a BV-BRC genome accession. Identifiers may be
 separated by any whitespace character."""
 
@@ -36,7 +36,10 @@ def parse_args() -> tuple[list[str], str]:
         Output directory.
     """
 
-    width = min(80, os.get_terminal_size().columns)
+    try:
+        width = min(80, os.get_terminal_size().columns)
+    except OSError:
+        width = None
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=lambda prog: argparse.HelpFormatter(
@@ -69,8 +72,8 @@ def download_genome(genome: str, output: str = ".") -> str:
     ----------
     genome : str
         A genome identifier. Valid identifiers include those that start with
-        'ENA_' followed by a BioSample accession or 'BVBRC_' followed by a
-        BV-BRC genome accession.
+        'GCA_', 'ENA_' followed by a BioSample accession, or 'BVBRC_' followed
+        by a BV-BRC genome accession.
     output : str, default='.'
         Output directory.
     
@@ -116,6 +119,7 @@ def download_genome(genome: str, output: str = ".") -> str:
                 f"WARNING: failed to download '{genome}' because no "
                 "assembly was found associated with the given BioSample"
             )
+        time.sleep(1)
 
     elif genome.startswith("BVBRC_"):
         identifier = genome.split("_", maxsplit=1)[-1]
@@ -140,11 +144,21 @@ def download_genome(genome: str, output: str = ".") -> str:
                     file=handle
                 )
 
+        time.sleep(1)
         msg = f"INFO: finished downloading '{genome}' into '{file}'"
+    elif genome.startswith("GCA_"):
+        url = f"https://www.ebi.ac.uk/ena/browser/api/fasta/{genome}?download=true&gzip=true"
+        try:
+            urlretrieve(url, file)
+            msg = f"INFO: finished downloading '{genome}' into '{file}'"
+        except Exception as e:
+            msg = (
+                f"WARNING: failed to download '{genome}' because of an "
+                f"exception: {e}"
+            )
     else:
         msg = f"WARNING: skipping '{genome}' as it is not a valid identifier"
 
-    time.sleep(1)
     return msg
 
 
@@ -154,7 +168,7 @@ def main() -> int:
     processes = int(os.environ.get("CPUS", 10))
     genomes, output = parse_args()
     func = ft.partial(download_genome, output=output)
-    log(f"INFO: genome download process started")
+    log(f"INFO: genome download process into '{output}' started")
 
     try:
         p3_status = sp.run(
@@ -176,9 +190,10 @@ def main() -> int:
         for message in pool.imap_unordered(func, genomes):
             log(message)
 
+    log(f"INFO: genome download process into '{output}' finished successfully")
+
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-
