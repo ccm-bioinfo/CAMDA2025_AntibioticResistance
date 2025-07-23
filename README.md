@@ -20,17 +20,18 @@ Some additional metadata are provided when available (publication ID, isolation_
 
 The total number of isolates for model training is 6,144, subdivided as follows: 
 
-Species                     Antibiotic  Susceptible  Intermediate  Resistant	Notes
------------------------------------------------------------------------------------------------------------------
-Klebsiella pneumoniae      	GEN          350          150         350
-Salmonella enterica        	GEN          350           21         350
-Escherichia coli           	GEN          345           19         154
-Staphylococcus aureus       ERY          334           46         265   		no MIC value in testing dataset
-Streptococcus pneumoniae   	ERY          350           53         350
-Campylobacter jejuni      	TET          211            0         326
-Neisseria gonorrhoeae       TET          271          150         350
-Acinetobacter baumannii    	CAZ          277          150         350   		no MIC value in testing dataset
-Pseudomonas aeruginosa     	CAZ          228           95         249
+| Bacteria                     | Antibiotic | Train Samples | Test Samples | Total | Notes                                  |
+|-----------------------------|------------|---------------|--------------|-------|----------------------------------------|
+| _Klebsiella pneumoniae_       | GEN        | 350           | 150          | 350   |                                        |
+| _Salmonella enterica_         | GEN        | 350           | 21           | 350   |                                        |
+| _Escherichia coli_            | GEN        | 345           | 19           | 154   |                                        |
+| _Staphylococcus aureus_       | ERY        | 334           | 46           | 265   | no MIC value in testing dataset        |
+| _Streptococcus pneumoniae_    | ERY        | 350           | 53           | 350   |                                        |
+| _Campylobacter jejuni_        | TET        | 211           | 0            | 326   |                                        |
+| _Neisseria gonorrhoeae_       | TET        | 271           | 150          | 350   |                                        |
+| _Acinetobacter baumannii_     | CAZ        | 277           | 150          | 350   | no MIC value in testing dataset        |
+| _Pseudomonas aeruginosa_      | CAZ        | 228           | 95           | 249   |                                        |
+
 
 
 
